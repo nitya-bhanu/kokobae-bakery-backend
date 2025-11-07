@@ -1,8 +1,8 @@
 package com.kokobae_bakery.kokobae_bakery.service;
 
+import com.kokobae_bakery.kokobae_bakery.dto.CartItemDto;
 import com.kokobae_bakery.kokobae_bakery.model.Cart;
 import com.kokobae_bakery.kokobae_bakery.model.CartItem;
-import com.kokobae_bakery.kokobae_bakery.model.Product;
 import com.kokobae_bakery.kokobae_bakery.repository.CartRepository;
 import com.kokobae_bakery.kokobae_bakery.repository.ProductRepository;
 import org.springframework.stereotype.Service;
@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class CartService {
@@ -26,28 +27,26 @@ public class CartService {
         return cartRepository.findByUserId(userId);
     }
 
-    public Cart addItemToCart(String userId, String productId, int quantity) {
+    public Cart synchronizeCart(String userId, List<CartItemDto> desiredItems) {
         Cart cart = cartRepository.findByUserId(userId).orElseGet(() -> {
             Cart newCart = new Cart();
             newCart.setUserId(userId);
-            newCart.setItems(new ArrayList<>());
             return newCart;
         });
 
-        Optional<Product> productOptional = productRepository.findById(productId);
-        if (productOptional.isEmpty()) {
-            throw new RuntimeException("Product not found");
+        List<CartItem> newCartItems = new ArrayList<>();
+        if (desiredItems != null) {
+            for (CartItemDto itemDto : desiredItems) {
+                // Ensure product exists and quantity is valid before adding
+                if (itemDto.getQuantity() > 0) {
+                    productRepository.findById(itemDto.getProductId())
+                            .orElseThrow(() -> new RuntimeException("Attempted to add non-existent product to cart: " + itemDto.getProductId()));
+                    newCartItems.add(new CartItem(itemDto.getProductId(), itemDto.getQuantity()));
+                }
+            }
         }
 
-        Optional<CartItem> existingItem = cart.getItems().stream()
-                .filter(item -> item.getProductId().equals(productId))
-                .findFirst();
-
-        if (existingItem.isPresent()) {
-            existingItem.get().setQuantity(existingItem.get().getQuantity() + quantity);
-        } else {
-            cart.getItems().add(new CartItem(productId, quantity));
-        }
+        cart.setItems(newCartItems);
         return cartRepository.save(cart);
     }
 
