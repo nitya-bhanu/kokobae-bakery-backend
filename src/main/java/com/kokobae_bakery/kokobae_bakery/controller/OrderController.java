@@ -20,11 +20,11 @@ public class OrderController {
         this.orderService = orderService;
     }
 
-    @PostMapping("/place")
-    public ResponseEntity<Order> placeOrder(@AuthenticationPrincipal UserDetails userDetails) {
+    @PostMapping("/place/{paymentMethod}")
+    public ResponseEntity<Order> placeOrder(@AuthenticationPrincipal UserDetails userDetails, @ PathVariable String paymentMethod) {
         String userId = userDetails.getUsername();
         try {
-            Order order = orderService.placeOrder(userId);
+            Order order = orderService.placeOrder(userId, paymentMethod);
             return ResponseEntity.ok(order);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(null);

@@ -20,5 +20,6 @@ public class Order {
     private Instant orderDate;
     private List<OrderItem> items;
     private Double totalAmount;
+    private String paymentMethod; // e.g., "COD", "ONLINE", "UPI"
     private String status; // e.g., "PENDING", "COMPLETED", "CANCELLED"
 }

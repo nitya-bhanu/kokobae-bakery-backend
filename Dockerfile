@@ -1,6 +1,6 @@
 # --- Stage 1: Build the application ---
 # Use an official Maven image that includes JDK 17
-FROM maven:3.9.6-eclipse-temurin-17 as builder
+FROM maven:3.9.6-eclipse-temurin-17 AS builder
 
 # Set the working directory inside the container
 WORKDIR /app

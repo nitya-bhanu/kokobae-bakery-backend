@@ -24,7 +24,7 @@ public class OrderService {
         this.productRepository = productRepository;
     }
 
-    public Order placeOrder(String userId) {
+    public Order placeOrder(String userId, String paymentMethod) {
         Cart cart = cartService.getCartByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("Cart not found for user " + userId));
 
@@ -36,6 +36,7 @@ public class OrderService {
         order.setUserId(userId);
         order.setOrderDate(Instant.now());
         order.setStatus("PENDING");
+        order.setPaymentMethod(paymentMethod);
 
         List<OrderItem> orderItems = new ArrayList<>();
         AtomicReference<Double> totalAmount = new AtomicReference<>(0.0);
