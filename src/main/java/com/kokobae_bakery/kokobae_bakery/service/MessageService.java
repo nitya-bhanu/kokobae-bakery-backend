@@ -32,9 +32,9 @@ public class MessageService {
         return messageRepository.findAll();
     }
 
-    public Optional<Message> markMessageAsRead(String id) {
+    public Optional<Message> markMessageAsRead(String id, boolean read) {
         return messageRepository.findById(id).map(message -> {
-            message.setRead(true);
+            message.setRead(read);
             return messageRepository.save(message);
         });
     }

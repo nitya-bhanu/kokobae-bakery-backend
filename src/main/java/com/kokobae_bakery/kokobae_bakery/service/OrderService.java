@@ -45,9 +45,9 @@ public class OrderService {
                     .orElseThrow(() -> new RuntimeException("Product not found: " + cartItem.getProductId()));
 
             OrderItem orderItem = new OrderItem();
-            orderItem.setProductId(product.getId());
-            orderItem.setProductName(product.getName());
-            orderItem.setQuantity(cartItem.getQuantity());
+            orderItem.setId(product.getId());
+            orderItem.setName(product.getName());
+            orderItem.setStock(cartItem.getQuantity());
             orderItem.setPrice(product.getPrice());
             orderItems.add(orderItem);
             totalAmount.updateAndGet(v -> v + (product.getPrice() * cartItem.getQuantity()));

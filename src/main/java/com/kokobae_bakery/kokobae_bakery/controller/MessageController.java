@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/messages")
 public class MessageController {
 
     private final MessageService messageService;
@@ -19,27 +19,27 @@ public class MessageController {
         this.messageService = messageService;
     }
 
-    @PostMapping("/messages")
+    @PostMapping
     public ResponseEntity<Message> createMessage(@RequestBody MessageDto messageDto) {
         Message newMessage = messageService.createMessage(messageDto);
         return ResponseEntity.ok(newMessage);
     }
 
-    @GetMapping("/admin/messages")
+    @GetMapping("/admin")
     @PreAuthorize("hasRole('ADMIN')")
     public List<Message> getAllMessages() {
         return messageService.getAllMessages();
     }
 
-    @PatchMapping("/admin/messages/{id}/read")
+    @PatchMapping("/admin/{id}/{read}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Message> markMessageAsRead(@PathVariable String id) {
-        return messageService.markMessageAsRead(id)
+    public ResponseEntity<Message> markMessageAsRead(@PathVariable String id, @PathVariable boolean read) {
+        return messageService.markMessageAsRead(id, read)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @DeleteMapping("/admin/messages/{id}")
+    @DeleteMapping("/admin/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteMessage(@PathVariable String id) {
         messageService.deleteMessage(id);
