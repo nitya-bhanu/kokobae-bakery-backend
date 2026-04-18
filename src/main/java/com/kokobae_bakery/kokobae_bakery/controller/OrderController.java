@@ -1,7 +1,10 @@
 package com.kokobae_bakery.kokobae_bakery.controller;
 
+import com.kokobae_bakery.kokobae_bakery.dto.OrderInitiateRequest;
 import com.kokobae_bakery.kokobae_bakery.model.Order;
 import com.kokobae_bakery.kokobae_bakery.service.OrderService;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -20,14 +23,37 @@ public class OrderController {
         this.orderService = orderService;
     }
 
+    // Legacy endpoint - kept for backward compatibility
     @PostMapping("/place/{paymentMethod}")
-    public ResponseEntity<Order> placeOrder(@AuthenticationPrincipal UserDetails userDetails, @ PathVariable String paymentMethod) {
+    public ResponseEntity<Order> placeOrderLegacy(@AuthenticationPrincipal UserDetails userDetails,
+                                                  @PathVariable String paymentMethod) {
         String userId = userDetails.getUsername();
         try {
             Order order = orderService.placeOrder(userId, paymentMethod);
             return ResponseEntity.ok(order);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(null);
+        }
+    }
+
+    @PostMapping("/initiate")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> initiateOrder(@AuthenticationPrincipal UserDetails userDetails,
+                                           @Valid @RequestBody OrderInitiateRequest request) {
+        String userId = userDetails.getUsername();
+
+        // Reject ONLINE payments - use /api/payments/prepare instead
+        if ("ONLINE".equals(request.getPaymentMethod())) {
+            return ResponseEntity.status(400).body(
+                    new ErrorResponse("Use /api/payments/prepare for online payments")
+            );
+        }
+
+        try {
+            Order order = orderService.initiateOrder(userId, request);
+            return new ResponseEntity<>(order, HttpStatus.CREATED);
+        } catch (RuntimeException e) {
+            return new ResponseEntity<>(new ErrorResponse(e.getMessage()), HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -47,9 +73,26 @@ public class OrderController {
 
     @PatchMapping("/admin/{id}/status")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Order> updateOrderStatus(@PathVariable String id, @RequestBody String status) {
-        return orderService.updateOrderStatus(id, status)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> updateOrderStatus(@PathVariable String id, @RequestBody String status) {
+        try {
+            return orderService.updateOrderStatus(id, status)
+                    .map(ResponseEntity::ok)
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (RuntimeException e) {
+            return new ResponseEntity<>(new ErrorResponse(e.getMessage()), HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    // Simple error response class
+    private static class ErrorResponse {
+        private final String error;
+
+        public ErrorResponse(String error) {
+            this.error = error;
+        }
+
+        public String getError() {
+            return error;
+        }
     }
 }

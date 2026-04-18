@@ -20,6 +20,17 @@ public class Order {
     private Instant orderDate;
     private List<OrderItem> items;
     private Double totalAmount;
-    private String paymentMethod; // e.g., "COD", "ONLINE", "UPI"
-    private String status; // e.g., "PENDING", "COMPLETED", "CANCELLED"
+
+    // Existing fields - kept
+    private String paymentMethod;  // COD, ONLINE
+    private String status;         // PENDING_COD, PENDING_PAYMENT, PROCESSING, SHIPPED, DELIVERED, CANCELLED
+
+    // New fields
+    private String deliveryType;    // DELIVERY or PICKUP
+    private String deliveryAddress; // null if PICKUP
+    private String deliveryPincode; // null if PICKUP
+    private String customerName;    // denormalized for admin view
+    private String customerPhone;   // denormalized for admin view
+    private String paymentStatus;   // PENDING, PAID, COD
+    private String razorpayOrderId; // for online payments, filled later
 }

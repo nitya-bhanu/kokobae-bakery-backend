@@ -20,10 +20,23 @@ import java.util.Collections;
 public class User implements UserDetails {
     @Id
     private String id;
+
+    private String fullName;
+
     @Indexed(unique = true)
-    private String username;
+    private String phone;        // replaces username as unique ID
+    private String username;     // keep for backward compat, set = phone
+
     private String password;
     private String role; // e.g., "ADMIN", "CUSTOMER"
+
+    private String defaultAddress;   // saved address for faster checkout
+    private String defaultPincode;
+
+    @Override
+    public String getUsername() {
+        return phone; // Spring Security uses this for authentication
+    }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

@@ -29,6 +29,10 @@ public class JwtUtil {
         return extractClaim(token, Claims::getSubject);
     }
 
+    public String extractFullName(String token) {
+        return extractClaim(token, claims -> claims.get("fullName", String.class));
+    }
+
     public Date extractExpiration(String token) {
         return extractClaim(token, Claims::getExpiration);
     }
@@ -51,18 +55,28 @@ public class JwtUtil {
         if (userDetails instanceof User user) {
             claims.put("id", user.getId());
             claims.put("role", user.getRole());
+            claims.put("fullName", user.getFullName());
+            // Debug logging
+            // System.out.println("DEBUG - User fullName: " + user.getFullName());
+            // System.out.println("DEBUG - Claims: " + claims);
         }
         return createToken(claims, userDetails.getUsername());
     }
 
     private String createToken(Map<String, Object> claims, String subject) {
-        return Jwts.builder()
+        String token = Jwts.builder()
                 .setClaims(claims)
                 .setSubject(subject)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
                 .signWith(getSignKey(), SignatureAlgorithm.HS256)
                 .compact();
+
+        // Debug: decode and verify token payload
+        Claims tokenClaims = extractAllClaims(token);
+        // System.out.println("DEBUG - Token payload: " + tokenClaims.toString());
+
+        return token;
     }
 
     public Boolean validateToken(String token, UserDetails userDetails) {

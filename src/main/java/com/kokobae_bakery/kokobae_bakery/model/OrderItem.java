@@ -9,7 +9,12 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class OrderItem {
     private String id;
-    private String name;
-    private Integer stock;
+    private String name;        // product name
+    private Integer quantity;   // renamed from stock for clarity
     private Double price;
+
+    // Helper method for NotificationService
+    public String getProductName() {
+        return name;
+    }
 }

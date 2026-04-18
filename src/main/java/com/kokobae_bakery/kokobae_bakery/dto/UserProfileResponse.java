@@ -7,15 +7,9 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class AuthResponse {
-    private String token;
-    private String id;
+public class UserProfileResponse {
     private String fullName;
     private String phone;
-    private String role;
-
-    // Constructor for backward compatibility
-    public AuthResponse(String token) {
-        this.token = token;
-    }
+    private String defaultAddress;
+    private String defaultPincode;
 }
