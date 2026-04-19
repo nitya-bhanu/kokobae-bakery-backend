@@ -52,6 +52,11 @@ public class AuthService {
             throw new RuntimeException("Passwords do not match");
         }
 
+        // Check if email already registered
+        if (userRepository.existsByEmail(registerRequest.getEmail())) {
+            throw new RuntimeException("An account with this email already exists");
+        }
+
         // Check if phone already registered
         if (userRepository.existsByPhone(registerRequest.getPhone())) {
             throw new RuntimeException("Phone number already registered");
@@ -59,6 +64,7 @@ public class AuthService {
 
         User newUser = new User();
         newUser.setFullName(registerRequest.getFullName());
+        newUser.setEmail(registerRequest.getEmail());
         newUser.setPhone(registerRequest.getPhone());
         newUser.setUsername(registerRequest.getPhone()); // Set username = phone for backward compat
         newUser.setPassword(passwordEncoder.encode(registerRequest.getPassword()));

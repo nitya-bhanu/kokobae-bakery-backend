@@ -24,6 +24,9 @@ public class User implements UserDetails {
     private String fullName;
 
     @Indexed(unique = true)
+    private String email;
+
+    @Indexed(unique = true)
     private String phone;        // replaces username as unique ID
     private String username;     // keep for backward compat, set = phone
 

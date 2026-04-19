@@ -88,11 +88,10 @@
             <version>1.4.3</version>
         </dependency>
 
-        <!-- Twilio -->
+        <!-- Spring Mail -->
         <dependency>
-            <groupId>com.twilio.sdk</groupId>
-            <artifactId>twilio</artifactId>
-            <version>9.14.0</version>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
         </dependency>
     </dependencies>
 

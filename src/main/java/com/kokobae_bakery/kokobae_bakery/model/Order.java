@@ -31,6 +31,7 @@ public class Order {
     private String deliveryPincode; // null if PICKUP
     private String customerName;    // denormalized for admin view
     private String customerPhone;   // denormalized for admin view
+    private String customerEmail;   // denormalized for email notifications
     private String paymentStatus;   // PENDING, PAID, COD
     private String razorpayOrderId; // for online payments, filled later
 }

@@ -5,6 +5,7 @@ import com.kokobae_bakery.kokobae_bakery.model.*;
 import com.kokobae_bakery.kokobae_bakery.repository.OrderRepository;
 import com.kokobae_bakery.kokobae_bakery.repository.ProductRepository;
 import com.kokobae_bakery.kokobae_bakery.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -137,6 +138,7 @@ public class OrderService {
         order.setDeliveryPincode(request.getDeliveryPincode());
         order.setCustomerName(user.getFullName());
         order.setCustomerPhone(user.getPhone());
+        order.setCustomerEmail(user.getEmail());
 
         if ("COD".equals(request.getPaymentMethod())) {
             order.setStatus("PENDING_COD");
@@ -154,6 +156,18 @@ public class OrderService {
         }
 
         return savedOrder;
+    }
+
+    @Autowired
+    private NotificationService notificationService;
+
+    public Order initiateOrderWithNotification(String userId, OrderInitiateRequest request) {
+        Order order = initiateOrder(userId, request);
+        // Send email notification for COD orders
+        if ("COD".equals(request.getPaymentMethod())) {
+            notificationService.notifyOrderPlaced(order);
+        }
+        return order;
     }
 
     public void confirmOnlinePayment(String orderId, String razorpayOrderId) {

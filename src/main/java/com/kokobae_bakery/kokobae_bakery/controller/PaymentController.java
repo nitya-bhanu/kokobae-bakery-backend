@@ -242,6 +242,7 @@ public class PaymentController {
                 order.setDeliveryPincode(deliveryPincode);
                 order.setCustomerName(user.getFullName());
                 order.setCustomerPhone(user.getPhone());
+                order.setCustomerEmail(user.getEmail());
                 order.setRazorpayOrderId(paymentEntity.optString("order_id"));
 
                 Order savedOrder = orderRepository.save(order);
@@ -250,8 +251,8 @@ public class PaymentController {
                 cart.setItems(new ArrayList<>());
                 cartRepository.save(cart);
 
-                // Send WhatsApp notifications
-                notificationService.notifyNewOrder(savedOrder);
+                // Send email notification
+                notificationService.notifyOrderPlaced(savedOrder);
             }
 
             return ResponseEntity.ok("ok");
@@ -298,15 +299,4 @@ public class PaymentController {
         }
     }
 
-    // COD notification - called when COD order is placed
-    @PostMapping("/notify-cod")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<?> notifyCod(
-            @RequestBody Map<String, String> body) {
-        String orderId = body.get("orderId");
-        orderRepository.findById(orderId).ifPresent(order -> {
-            notificationService.notifyNewOrder(order);
-        });
-        return ResponseEntity.ok("ok");
-    }
 }

@@ -2,6 +2,7 @@ package com.kokobae_bakery.kokobae_bakery.controller;
 
 import com.kokobae_bakery.kokobae_bakery.dto.OrderInitiateRequest;
 import com.kokobae_bakery.kokobae_bakery.model.Order;
+import com.kokobae_bakery.kokobae_bakery.service.NotificationService;
 import com.kokobae_bakery.kokobae_bakery.service.OrderService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -12,15 +13,18 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/orders")
 public class OrderController {
 
     private final OrderService orderService;
+    private final NotificationService notificationService;
 
-    public OrderController(OrderService orderService) {
+    public OrderController(OrderService orderService, NotificationService notificationService) {
         this.orderService = orderService;
+        this.notificationService = notificationService;
     }
 
     // Legacy endpoint - kept for backward compatibility
@@ -51,6 +55,8 @@ public class OrderController {
 
         try {
             Order order = orderService.initiateOrder(userId, request);
+            // Send email notification for COD orders
+            notificationService.notifyOrderPlaced(order);
             return new ResponseEntity<>(order, HttpStatus.CREATED);
         } catch (RuntimeException e) {
             return new ResponseEntity<>(new ErrorResponse(e.getMessage()), HttpStatus.BAD_REQUEST);
@@ -73,10 +79,14 @@ public class OrderController {
 
     @PatchMapping("/admin/{id}/status")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> updateOrderStatus(@PathVariable String id, @RequestBody String status) {
+    public ResponseEntity<?> updateOrderStatus(@PathVariable String id, @RequestBody Map<String, String> body) {
+        String status = body.get("status");
         try {
             return orderService.updateOrderStatus(id, status)
-                    .map(ResponseEntity::ok)
+                    .map(order -> {
+                        notificationService.notifyStatusUpdate(order);
+                        return ResponseEntity.ok(order);
+                    })
                     .orElse(ResponseEntity.notFound().build());
         } catch (RuntimeException e) {
             return new ResponseEntity<>(new ErrorResponse(e.getMessage()), HttpStatus.BAD_REQUEST);
