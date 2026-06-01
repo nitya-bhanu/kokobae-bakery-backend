@@ -50,7 +50,8 @@ public class AuthController {
                     authData.getFullName(), authData.getPhone(), authData.getRole());
             return new ResponseEntity<>(response, HttpStatus.CREATED);
         } catch (RuntimeException e) {
-            return ResponseEntity.status(400).body(Map.of("error", e.getMessage()));
+            String errorMessage = e.getMessage() != null ? e.getMessage() : "Registration failed";
+            return ResponseEntity.status(400).body(Map.of("error", errorMessage));
         }
     }
 

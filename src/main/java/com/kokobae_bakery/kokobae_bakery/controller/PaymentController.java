@@ -75,6 +75,11 @@ public class PaymentController {
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestBody Map<String, String> body) {
         try {
+            if (keyId == null || keyId.isEmpty() || keySecret == null || keySecret.isEmpty()) {
+                return ResponseEntity.status(500)
+                        .body(Map.of("error", "Razorpay keys are not configured on the server"));
+            }
+
             String userId = userDetails.getUsername();
             String deliveryType = body.get("deliveryType");
             String deliveryAddress = body.get("deliveryAddress");
@@ -101,7 +106,7 @@ public class PaymentController {
 
             // 2. Get cart and calculate total server-side (do NOT trust frontend)
             Cart cart = cartRepository.findByUserId(userId)
-                    .orElseThrow(() -> new RuntimeException("Cart not found"));
+                    .orElseThrow(() -> new RuntimeException("Cart not found for user: " + userId + ". Please add items to your cart first."));
 
             if (cart.getItems().isEmpty()) {
                 return ResponseEntity.badRequest()
@@ -119,7 +124,7 @@ public class PaymentController {
 
             // 3. Get user details
             User user = userRepository.findByPhone(userId)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
+                    .orElseThrow(() -> new RuntimeException("User not found: " + userId));
 
             // 4. Create Razorpay order with notes (do NOT save to DB yet)
             RazorpayClient client = new RazorpayClient(keyId, keySecret);
@@ -131,8 +136,8 @@ public class PaymentController {
             // Store checkout details in notes for webhook retrieval
             JSONObject notes = new JSONObject();
             notes.put("deliveryType", deliveryType);
-            notes.put("deliveryAddress", deliveryAddress);
-            notes.put("deliveryPincode", deliveryPincode);
+            notes.put("deliveryAddress", deliveryAddress != null ? deliveryAddress : "");
+            notes.put("deliveryPincode", deliveryPincode != null ? deliveryPincode : "");
             notes.put("userId", userId);
             notes.put("paymentMethod", "ONLINE");
             options.put("notes", notes);
@@ -148,13 +153,14 @@ public class PaymentController {
                     "customerPhone", user.getPhone(),
                     "checkoutDetails", Map.of(
                             "deliveryType", deliveryType,
-                            "deliveryAddress", deliveryAddress,
-                            "deliveryPincode", deliveryPincode
+                            "deliveryAddress", deliveryAddress != null ? deliveryAddress : "",
+                            "deliveryPincode", deliveryPincode != null ? deliveryPincode : ""
                     )
             ));
         } catch (Exception e) {
+            e.printStackTrace(); // Log the stack trace for local debugging
             return ResponseEntity.status(500)
-                    .body(Map.of("error", e.getMessage()));
+                    .body(Map.of("error", e.getMessage() != null ? e.getMessage() : "Internal Server Error during payment preparation"));
         }
     }
 
@@ -169,21 +175,57 @@ public class PaymentController {
                     payload, signature, webhookSecret);
 
             if (!valid) {
+                System.err.println("[WEBHOOK] Invalid Razorpay Webhook Signature");
                 return ResponseEntity.status(400).body("Invalid signature");
             }
 
             JSONObject event = new JSONObject(payload);
             String eventType = event.getString("event");
 
-            if ("payment.captured".equals(eventType)) {
-                JSONObject paymentEntity = event
-                        .getJSONObject("payload")
-                        .getJSONObject("payment")
-                        .getJSONObject("entity");
+            if ("payment.captured".equals(eventType) || "order.paid".equals(eventType)) {
+                JSONObject payloadObj = event.getJSONObject("payload");
+                JSONObject notes = null;
+                String rzpOrderId = null;
 
-                JSONObject notes = paymentEntity.optJSONObject("notes");
-                if (notes == null) {
+                // 1. Try to get data from Order entity (best source for notes)
+                if (payloadObj.has("order")) {
+                    JSONObject orderEntity = payloadObj.getJSONObject("order").getJSONObject("entity");
+                    notes = orderEntity.optJSONObject("notes");
+                    rzpOrderId = orderEntity.optString("id");
+                }
+
+                // 2. Try to get data from Payment entity
+                if (payloadObj.has("payment")) {
+                    JSONObject paymentEntity = payloadObj.getJSONObject("payment").getJSONObject("entity");
+                    if (notes == null || notes.length() == 0) {
+                        notes = paymentEntity.optJSONObject("notes");
+                    }
+                    if (rzpOrderId == null || rzpOrderId.isEmpty()) {
+                        rzpOrderId = paymentEntity.optString("order_id");
+                    }
+                }
+
+                // 3. Fallback: Fetch from Razorpay API if notes are still missing
+                if ((notes == null || notes.length() == 0) && (rzpOrderId != null && !rzpOrderId.isEmpty())) {
+                    System.out.println("Notes missing in webhook payload, fetching order from Razorpay: " + rzpOrderId);
+                    RazorpayClient client = new RazorpayClient(keyId, keySecret);
+                    com.razorpay.Order rzpOrder = client.orders.fetch(rzpOrderId);
+                    if (rzpOrder != null) {
+                        notes = rzpOrder.toJson().optJSONObject("notes");
+                    }
+                }
+
+                if (notes == null || notes.length() == 0) {
+                    System.err.println("[WEBHOOK] Could not find notes for Razorpay Order: " + rzpOrderId);
                     return ResponseEntity.ok("ok");
+                }
+
+                // 4. Check for duplicate orders
+                if (rzpOrderId != null && !rzpOrderId.isEmpty()) {
+                    if (orderRepository.existsByRazorpayOrderId(rzpOrderId)) {
+                        System.out.println("[WEBHOOK] Duplicate order, skipping: " + rzpOrderId);
+                        return ResponseEntity.ok("ok");
+                    }
                 }
 
                 String userId = notes.optString("userId");
@@ -191,15 +233,36 @@ public class PaymentController {
                 String deliveryAddress = notes.optString("deliveryAddress");
                 String deliveryPincode = notes.optString("deliveryPincode");
 
+                // Fallback 1: Use contact from payment entity if userId missing in notes
+                if ((userId == null || userId.isEmpty()) && payloadObj.has("payment")) {
+                    userId = payloadObj.getJSONObject("payment").getJSONObject("entity").optString("contact");
+                    System.out.println("userId missing in notes, falling back to payment contact: " + userId);
+                }
+
+                if (userId == null || userId.isEmpty()) {
+                    System.err.println("No userId in notes or contact in payment for Razorpay Order: " + rzpOrderId);
+                    return ResponseEntity.ok("ok");
+                }
+
+                // Normalize phone number (handle +91 prefix)
+                String normalizedUserId = userId;
+                if (userId.startsWith("+91")) {
+                    normalizedUserId = userId.substring(3);
+                } else if (userId.length() > 10 && userId.startsWith("91")) {
+                    normalizedUserId = userId.substring(2);
+                }
+
                 // Fetch user for name and phone
-                User user = userRepository.findByPhone(userId).orElse(null);
+                User user = userRepository.findByPhone(normalizedUserId).orElse(null);
                 if (user == null) {
+                    System.err.println("[WEBHOOK] User not found: " + normalizedUserId);
                     return ResponseEntity.ok("ok");
                 }
 
                 // Fetch cart
-                Cart cart = cartRepository.findByUserId(userId).orElse(null);
+                Cart cart = cartRepository.findByUserId(normalizedUserId).orElse(null);
                 if (cart == null || cart.getItems().isEmpty()) {
+                    System.err.println("[WEBHOOK] Cart empty for user: " + normalizedUserId);
                     return ResponseEntity.ok("ok");
                 }
 
@@ -220,6 +283,7 @@ public class PaymentController {
                         .collect(Collectors.toList());
 
                 if (orderItems.isEmpty()) {
+                    System.err.println("[WEBHOOK] No valid items for user: " + normalizedUserId);
                     return ResponseEntity.ok("ok");
                 }
 
@@ -230,7 +294,7 @@ public class PaymentController {
 
                 // Create and save order
                 Order order = new Order();
-                order.setUserId(userId);
+                order.setUserId(normalizedUserId);
                 order.setOrderDate(Instant.now());
                 order.setItems(orderItems);
                 order.setTotalAmount(total);
@@ -243,20 +307,26 @@ public class PaymentController {
                 order.setCustomerName(user.getFullName());
                 order.setCustomerPhone(user.getPhone());
                 order.setCustomerEmail(user.getEmail());
-                order.setRazorpayOrderId(paymentEntity.optString("order_id"));
+                order.setRazorpayOrderId(rzpOrderId);
 
                 Order savedOrder = orderRepository.save(order);
+                System.out.println("[WEBHOOK] Order created: " + savedOrder.getId() + " for user: " + normalizedUserId);
 
                 // Clear cart
                 cart.setItems(new ArrayList<>());
                 cartRepository.save(cart);
 
                 // Send email notification
-                notificationService.notifyOrderPlaced(savedOrder);
+                try {
+                    notificationService.notifyOrderPlaced(savedOrder);
+                } catch (Exception e) {
+                    System.err.println("[WEBHOOK] Email failed: " + e.getMessage());
+                }
             }
 
             return ResponseEntity.ok("ok");
         } catch (Exception e) {
+            System.err.println("[WEBHOOK] Error: " + e.getMessage());
             return ResponseEntity.status(500).body(e.getMessage());
         }
     }
@@ -290,12 +360,13 @@ public class PaymentController {
                     "amount", amountPaise,
                     "currency", "INR",
                     "keyId", keyId,
-                    "customerName", order.getCustomerName(),
-                    "customerPhone", order.getCustomerPhone()
+                    "customerName", order.getCustomerName() != null ? order.getCustomerName() : "",
+                    "customerPhone", order.getCustomerPhone() != null ? order.getCustomerPhone() : ""
             ));
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.status(500)
-                    .body(Map.of("error", e.getMessage()));
+                    .body(Map.of("error", e.getMessage() != null ? e.getMessage() : "Internal Server Error during payment creation"));
         }
     }
 
