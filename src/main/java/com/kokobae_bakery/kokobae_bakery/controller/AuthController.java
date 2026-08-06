@@ -47,7 +47,7 @@ public class AuthController {
                     new LoginRequest(registerRequest.getPhone(), registerRequest.getPassword())
             );
             AuthResponse response = new AuthResponse(authData.getToken(), authData.getId(),
-                    authData.getFullName(), authData.getPhone(), authData.getRole());
+                    authData.getFullName(), authData.getPhone(), authData.getRole(), authData.getEmail());
             return new ResponseEntity<>(response, HttpStatus.CREATED);
         } catch (RuntimeException e) {
             String errorMessage = e.getMessage() != null ? e.getMessage() : "Registration failed";
@@ -60,7 +60,7 @@ public class AuthController {
     public ResponseEntity<AuthResponse> createAuthenticationTokenLegacy(@RequestBody AuthRequest authRequest) {
         AuthResponseData authData = authService.authenticateUser(authRequest);
         AuthResponse response = new AuthResponse(authData.getToken(), authData.getId(),
-                authData.getFullName(), authData.getPhone(), authData.getRole());
+                authData.getFullName(), authData.getPhone(), authData.getRole(), authData.getEmail());
         return ResponseEntity.ok(response);
     }
 
@@ -68,7 +68,7 @@ public class AuthController {
     public ResponseEntity<AuthResponse> createAuthenticationToken(@Valid @RequestBody LoginRequest loginRequest) {
         AuthResponseData authData = authService.authenticateUserWithPhone(loginRequest);
         AuthResponse response = new AuthResponse(authData.getToken(), authData.getId(),
-                authData.getFullName(), authData.getPhone(), authData.getRole());
+                authData.getFullName(), authData.getPhone(), authData.getRole(), authData.getEmail());
         return ResponseEntity.ok(response);
     }
 }

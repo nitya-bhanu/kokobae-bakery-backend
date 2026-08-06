@@ -33,6 +33,10 @@ public class JwtUtil {
         return extractClaim(token, claims -> claims.get("fullName", String.class));
     }
 
+    public String extractEmail(String token) {
+        return extractClaim(token, claims -> claims.get("email", String.class));
+    }
+
     public Date extractExpiration(String token) {
         return extractClaim(token, Claims::getExpiration);
     }
@@ -56,6 +60,7 @@ public class JwtUtil {
             claims.put("id", user.getId());
             claims.put("role", user.getRole());
             claims.put("fullName", user.getFullName());
+            claims.put("email", user.getEmail());
             // Debug logging
             // System.out.println("DEBUG - User fullName: " + user.getFullName());
             // System.out.println("DEBUG - Claims: " + claims);

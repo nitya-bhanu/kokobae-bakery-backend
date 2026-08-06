@@ -82,7 +82,7 @@ public class AuthService {
         String token = jwtUtil.generateToken(userDetails);
 
         User user = (User) userDetails;
-        return new AuthResponseData(token, user.getId(), user.getFullName(), user.getPhone(), user.getRole());
+        return new AuthResponseData(token, user.getId(), user.getFullName(), user.getPhone(), user.getRole(), user.getEmail());
     }
 
     public AuthResponseData authenticateUserWithPhone(LoginRequest loginRequest) {
@@ -93,7 +93,7 @@ public class AuthService {
         String token = jwtUtil.generateToken(userDetails);
 
         User user = (User) userDetails;
-        return new AuthResponseData(token, user.getId(), user.getFullName(), user.getPhone(), user.getRole());
+        return new AuthResponseData(token, user.getId(), user.getFullName(), user.getPhone(), user.getRole(), user.getEmail());
     }
 
     public Optional<User> findByUsername(String username) {

@@ -13,6 +13,7 @@ public class AuthResponse {
     private String fullName;
     private String phone;
     private String role;
+    private String email;
 
     // Constructor for backward compatibility
     public AuthResponse(String token) {
