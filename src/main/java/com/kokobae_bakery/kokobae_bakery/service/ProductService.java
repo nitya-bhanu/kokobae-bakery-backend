@@ -34,6 +34,7 @@ public class ProductService {
         product.setName(productDetails.getName());
         product.setPrice(productDetails.getPrice());
         product.setImage(productDetails.getImage());
+        product.setImages(productDetails.getImages());
         product.setDealSeller(productDetails.getDealSeller());
         product.setOutOfStock(productDetails.getOutOfStock());
         product.setCategory(productDetails.getCategory());

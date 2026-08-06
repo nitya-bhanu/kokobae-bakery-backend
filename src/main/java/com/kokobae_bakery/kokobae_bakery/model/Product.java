@@ -1,5 +1,7 @@
 package com.kokobae_bakery.kokobae_bakery.model;
 
+import java.util.ArrayList;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -16,6 +18,7 @@ public class Product {
     private String name;
     private Double price;
     private String image;
+    private List<String> images = new ArrayList<>();
     private Boolean dealSeller;
     private Boolean outOfStock;
     private String category;
