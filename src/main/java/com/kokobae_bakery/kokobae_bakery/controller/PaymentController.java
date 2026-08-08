@@ -9,7 +9,7 @@ import com.kokobae_bakery.kokobae_bakery.repository.CartRepository;
 import com.kokobae_bakery.kokobae_bakery.repository.OrderRepository;
 import com.kokobae_bakery.kokobae_bakery.repository.ProductRepository;
 import com.kokobae_bakery.kokobae_bakery.repository.UserRepository;
-import com.kokobae_bakery.kokobae_bakery.service.NotificationService;
+import com.kokobae_bakery.kokobae_bakery.service.EmailService;
 import com.razorpay.RazorpayClient;
 import com.razorpay.Utils;
 import org.json.JSONObject;
@@ -23,7 +23,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -46,7 +45,7 @@ public class PaymentController {
     private ProductRepository productRepository;
 
     @Autowired
-    private NotificationService notificationService;
+    private EmailService emailService;
 
     @Value("${razorpay.key.id}")
     private String keyId;
@@ -57,14 +56,14 @@ public class PaymentController {
     @Value("${razorpay.webhook.secret}")
     private String webhookSecret;
 
-    @Value("${delivery.allowed.pincodes:500094,500047}")
-    private String allowedPincodesString;
+    @Value("${delivery.allowed.pincode.pattern:^[1-9][0-9]{5}$}")
+    private String allowedPincodePattern;
 
-    private List<String> getAllowedPincodes() {
-        if (allowedPincodesString == null || allowedPincodesString.isEmpty()) {
-            return Arrays.asList("500094", "500047");
+    private boolean isPincodeAllowed(String pincode) {
+        if (pincode == null || pincode.isEmpty()) {
+            return false;
         }
-        return Arrays.asList(allowedPincodesString.split(","));
+        return pincode.matches(allowedPincodePattern);
     }
 
     // Step 1: Prepare Razorpay order WITHOUT saving to DB
@@ -91,12 +90,9 @@ public class PaymentController {
                     return ResponseEntity.badRequest()
                             .body(Map.of("error", "Pincode is required for delivery orders"));
                 }
-                List<String> allowedPincodes = getAllowedPincodes();
-                if (!allowedPincodes.contains(deliveryPincode)) {
+                if (!isPincodeAllowed(deliveryPincode)) {
                     return ResponseEntity.badRequest()
-                            .body(Map.of("error",
-                                    "Sorry, we currently deliver only to pincodes " +
-                                            String.join(" and ", allowedPincodes)));
+                            .body(Map.of("error", "Please enter a valid 6-digit pincode"));
                 }
                 if (deliveryAddress == null || deliveryAddress.isEmpty()) {
                     return ResponseEntity.badRequest()
@@ -318,7 +314,7 @@ public class PaymentController {
 
                 // Send email notification
                 try {
-                    notificationService.notifyOrderPlaced(savedOrder);
+                    emailService.notifyOrderPlaced(savedOrder);
                 } catch (Exception e) {
                     System.err.println("[WEBHOOK] Email failed: " + e.getMessage());
                 }

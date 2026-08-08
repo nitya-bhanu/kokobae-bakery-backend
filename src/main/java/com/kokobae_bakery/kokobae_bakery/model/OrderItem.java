@@ -13,7 +13,7 @@ public class OrderItem {
     private Integer quantity;   // renamed from stock for clarity
     private Double price;
 
-    // Helper method for NotificationService
+    // Helper method for EmailService
     public String getProductName() {
         return name;
     }

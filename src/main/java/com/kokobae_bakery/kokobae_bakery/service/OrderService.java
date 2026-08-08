@@ -24,8 +24,8 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
 
-    @Value("${delivery.allowed.pincodes}")
-    private String allowedPincodesString;
+    @Value("${delivery.allowed.pincode.pattern:^[1-9][0-9]{5}$}")
+    private String allowedPincodePattern;
 
     public OrderService(OrderRepository orderRepository, CartService cartService,
                         ProductRepository productRepository, UserRepository userRepository) {
@@ -35,11 +35,11 @@ public class OrderService {
         this.userRepository = userRepository;
     }
 
-    private List<String> getAllowedPincodes() {
-        if (allowedPincodesString == null || allowedPincodesString.isEmpty()) {
-            return Arrays.asList("500094", "500047");
+    private boolean isPincodeAllowed(String pincode) {
+        if (pincode == null || pincode.isEmpty()) {
+            return false;
         }
-        return Arrays.asList(allowedPincodesString.split(","));
+        return pincode.matches(allowedPincodePattern);
     }
 
     // Legacy method - kept for backward compatibility
@@ -95,10 +95,8 @@ public class OrderService {
             if (request.getDeliveryPincode() == null || request.getDeliveryPincode().isEmpty()) {
                 throw new RuntimeException("Pincode is required for delivery orders");
             }
-            List<String> allowedPincodes = getAllowedPincodes();
-            if (!allowedPincodes.contains(request.getDeliveryPincode())) {
-                throw new RuntimeException("Sorry, we currently deliver only to pincodes " +
-                        String.join(" and ", allowedPincodes));
+            if (!isPincodeAllowed(request.getDeliveryPincode())) {
+                throw new RuntimeException("Please enter a valid 6-digit pincode");
             }
             if (request.getDeliveryAddress() == null || request.getDeliveryAddress().isEmpty()) {
                 throw new RuntimeException("Delivery address is required for delivery orders");
@@ -159,13 +157,13 @@ public class OrderService {
     }
 
     @Autowired
-    private NotificationService notificationService;
+    private EmailService emailService;
 
     public Order initiateOrderWithNotification(String userId, OrderInitiateRequest request) {
         Order order = initiateOrder(userId, request);
         // Send email notification for COD orders
         if ("COD".equals(request.getPaymentMethod())) {
-            notificationService.notifyOrderPlaced(order);
+            emailService.notifyOrderPlaced(order);
         }
         return order;
     }

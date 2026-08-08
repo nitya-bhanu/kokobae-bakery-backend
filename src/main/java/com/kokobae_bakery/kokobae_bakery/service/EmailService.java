@@ -2,16 +2,21 @@ package com.kokobae_bakery.kokobae_bakery.service;
 
 import com.kokobae_bakery.kokobae_bakery.model.Order;
 import jakarta.mail.internet.MimeMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.stream.Collectors;
 
 @Service
-public class NotificationService {
+public class EmailService {
+
+    private static final Logger log = LoggerFactory.getLogger(EmailService.class);
 
     @Autowired
     private JavaMailSender mailSender;
@@ -23,87 +28,119 @@ public class NotificationService {
     private String fromName;
 
     // Called when order is first placed (COD or Online)
+    @Async
     public void notifyOrderPlaced(Order order) {
-        String shortId = lastEight(order.getId());
-        String subject = "Order Confirmed! #" + shortId + " — Kokobae Bakery";
+        try {
+            String shortId = lastEight(order.getId());
+            String subject = "Order Confirmed! #" + shortId + " — Kokobae Bakery";
 
-        String deliveryInfo = buildDeliveryInfo(order);
-        String paymentInfo = buildPaymentInfo(order);
-        String itemsHtml = buildItemsHtml(order);
+            String deliveryInfo = buildDeliveryInfo(order);
+            String paymentInfo = buildPaymentInfo(order);
+            String itemsHtml = buildItemsHtml(order);
 
-        String body = buildEmail(
-                "Hi " + order.getCustomerName() + "!",
-                "Your order is confirmed and we're getting started.",
-                shortId,
-                itemsHtml,
-                order.getTotalAmount(),
-                deliveryInfo,
-                paymentInfo,
-                "We'll email you again when your order is on its way!"
-        );
+            String body = buildEmail(
+                    "Hi " + order.getCustomerName() + "!",
+                    "Your order is confirmed and we're getting started.",
+                    shortId,
+                    itemsHtml,
+                    order.getTotalAmount(),
+                    deliveryInfo,
+                    paymentInfo,
+                    "We'll email you again when your order is on its way!"
+            );
 
-        sendEmail(order.getCustomerEmail(), subject, body);
+            sendEmail(order.getCustomerEmail(), subject, body);
+        } catch (Exception e) {
+            log.warn("Failed to send order email due to quota/network error: {}", e.getMessage());
+            System.err.println("Failed to send order email due to quota/network error: " + e.getMessage());
+        }
     }
 
     // Called when admin updates order status
+    @Async
     public void notifyStatusUpdate(Order order) {
-        String shortId = lastEight(order.getId());
-        StatusMessage statusMessage = getStatusMessage(order.getStatus(), order.getDeliveryType());
+        try {
+            String shortId = lastEight(order.getId());
+            StatusMessage statusMessage = getStatusMessage(order.getStatus(), order.getDeliveryType());
 
-        if (statusMessage == null) return;
-        // Don't email for every status
+            if (statusMessage == null) return;
 
-        String subject = statusMessage.subject + " #" + shortId + " — Kokobae Bakery";
+            String subject = statusMessage.subject + " #" + shortId + " — Kokobae Bakery";
 
-        String body = buildEmail(
-                "Hi " + order.getCustomerName() + "!",
-                statusMessage.subtitle,
-                shortId,
-                buildItemsHtml(order),
-                order.getTotalAmount(),
-                buildDeliveryInfo(order),
-                buildPaymentInfo(order),
-                statusMessage.footer
-        );
+            String body = buildEmail(
+                    "Hi " + order.getCustomerName() + "!",
+                    statusMessage.subtitle,
+                    shortId,
+                    buildItemsHtml(order),
+                    order.getTotalAmount(),
+                    buildDeliveryInfo(order),
+                    buildPaymentInfo(order),
+                    statusMessage.footer
+            );
 
-        sendEmail(order.getCustomerEmail(), subject, body);
+            sendEmail(order.getCustomerEmail(), subject, body);
+        } catch (Exception e) {
+            log.warn("Failed to send order email due to quota/network error: {}", e.getMessage());
+            System.err.println("Failed to send order email due to quota/network error: " + e.getMessage());
+        }
     }
 
-    // Determines what to say per status
+    // Determines what to say per status based on optimized trigger matrix (Free-tier quota protection)
     private StatusMessage getStatusMessage(String status, String deliveryType) {
-        return switch (status) {
-            case "PROCESSING" -> new StatusMessage(
-                    "Your order is being prepared",
-                    "Great news — we've confirmed your order!",
-                    "We'll notify you when it's ready."
-            );
-            case "SHIPPED" -> new StatusMessage(
-                    "Your order is on its way",
-                    "Your fresh bakes are out for delivery!",
-                    "Expect delivery soon. Questions? WhatsApp us at +91 79959 78220."
-            );
-            case "READY_PICKUP" -> new StatusMessage(
-                    "Your order is ready for pickup",
-                    "Your order is packed and waiting for you!",
-                    "Pick up from our Sainikpuri store. Mon-Sat 9AM-7PM."
-            );
-            case "DELIVERED" -> new StatusMessage(
-                    "Order delivered!",
-                    "Your Kokobae order has been delivered.",
-                    "Hope you enjoy every bite! Order again at kokobae.netlify.app"
-            );
-            case "COLLECTED" -> new StatusMessage(
-                    "Order collected!",
-                    "Thanks for picking up your order!",
-                    "Hope you enjoy every bite! Order again at kokobae.netlify.app"
-            );
-            case "CANCELLED" -> new StatusMessage(
-                    "Order cancelled",
-                    "Your order #" + "has been cancelled.",
-                    "If you have questions, WhatsApp us at +91 79959 78220."
-            );
-            default -> null;
-        };
+        if (status == null) return null;
+
+        boolean isPickup = "PICKUP".equalsIgnoreCase(deliveryType);
+
+        switch (status) {
+            case "READY_FOR_PICKUP", "READY_PICKUP" -> {
+                if (isPickup) {
+                    return new StatusMessage(
+                            "Your order is ready for pickup",
+                            "Your order is packed and waiting for you!",
+                            "Pick up from our Sainikpuri store. Mon-Sat 9AM-7PM."
+                    );
+                }
+            }
+            case "DISPATCHED", "SHIPPED" -> {
+                if (!isPickup) {
+                    return new StatusMessage(
+                            "Your order is on its way",
+                            "Your fresh bakes are out for delivery!",
+                            "Expect delivery soon. Questions? WhatsApp us at +91 79959 78220."
+                    );
+                }
+            }
+            case "DELIVERED" -> {
+                if (!isPickup) {
+                    return new StatusMessage(
+                            "Order delivered!",
+                            "Your Kokobae order has been delivered.",
+                            "Hope you enjoy every bite! Order again at kokobae.netlify.app"
+                    );
+                }
+            }
+            case "COLLECTED" -> {
+                if (isPickup) {
+                    return new StatusMessage(
+                            "Order collected!",
+                            "Thanks for picking up your order!",
+                            "Hope you enjoy every bite! Order again at kokobae.netlify.app"
+                    );
+                }
+            }
+            case "CANCELLED" -> {
+                return new StatusMessage(
+                        "Order cancelled",
+                        "Your order has been cancelled.",
+                        "If you have questions, WhatsApp us at +91 79959 78220."
+                );
+            }
+            default -> {
+                // Skip internal/intermediate statuses (CONFIRMED, IN_PREPARATION, PROCESSING, PENDING_COD, etc.)
+                return null;
+            }
+        }
+        return null;
     }
 
     record StatusMessage(String subject, String subtitle, String footer) {}
@@ -197,6 +234,7 @@ public class NotificationService {
     }
 
     private String buildItemsHtml(Order order) {
+        if (order.getItems() == null) return "";
         return order.getItems().stream()
                 .map(i -> i.getProductName() + " &times; " + i.getQuantity() +
                         " &nbsp;=&nbsp; &#8377;" + (int)(i.getPrice() * i.getQuantity()))
@@ -204,13 +242,14 @@ public class NotificationService {
     }
 
     private String buildDeliveryInfo(Order order) {
-        if ("PICKUP".equals(order.getDeliveryType())) {
+        if ("PICKUP".equalsIgnoreCase(order.getDeliveryType())) {
             return "<strong>Pickup</strong> from Sainikpuri store";
         }
         return "<strong>Deliver to:</strong> " + order.getDeliveryAddress() + ", " + order.getDeliveryPincode();
     }
 
     private String buildPaymentInfo(Order order) {
+        if (order.getPaymentStatus() == null) return "Pending";
         return switch (order.getPaymentStatus()) {
             case "PAID" -> "Online payment — confirmed";
             case "COD" -> "Cash on delivery";
@@ -219,12 +258,13 @@ public class NotificationService {
     }
 
     private String lastEight(String id) {
+        if (id == null || id.length() <= 8) return id != null ? id : "";
         return id.substring(id.length() - 8);
     }
 
     private void sendEmail(String to, String subject, String htmlBody) {
         if (to == null || to.isBlank()) {
-            System.err.println("No email address for order");
+            log.warn("No email address for order");
             return;
         }
         try {
@@ -236,9 +276,10 @@ public class NotificationService {
             helper.setText(htmlBody, true);
             helper.setReplyTo("kokobae.bakery@gmail.com");
             mailSender.send(message);
-            System.out.println("Email sent to: " + to);
+            log.info("Email sent successfully to: {}", to);
         } catch (Exception e) {
-            System.err.println("Email failed to " + to + ": " + e.getMessage());
+            log.warn("Failed to send order email due to quota/network error to {}: {}", to, e.getMessage());
+            System.err.println("Failed to send order email due to quota/network error to " + to + ": " + e.getMessage());
         }
     }
 }

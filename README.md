@@ -570,9 +570,9 @@ kokobae-bakery/
 │   ├── repository/                  # Spring Data MongoDB
 │   ├── security/                    # JWT, SecurityConfig
 │   └── service/                     # Business logic
+│       ├── EmailService.java        # Asynchronous resilient email service
 │       ├── AuthService.java
 │       ├── CartService.java
-│       ├── NotificationService.java # Email service
 │       ├── OrderService.java
 │       └── ProductService.java
 ├── src/main/resources/

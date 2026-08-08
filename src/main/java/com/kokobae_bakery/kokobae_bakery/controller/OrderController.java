@@ -2,7 +2,7 @@ package com.kokobae_bakery.kokobae_bakery.controller;
 
 import com.kokobae_bakery.kokobae_bakery.dto.OrderInitiateRequest;
 import com.kokobae_bakery.kokobae_bakery.model.Order;
-import com.kokobae_bakery.kokobae_bakery.service.NotificationService;
+import com.kokobae_bakery.kokobae_bakery.service.EmailService;
 import com.kokobae_bakery.kokobae_bakery.service.OrderService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -20,11 +20,11 @@ import java.util.Map;
 public class OrderController {
 
     private final OrderService orderService;
-    private final NotificationService notificationService;
+    private final EmailService emailService;
 
-    public OrderController(OrderService orderService, NotificationService notificationService) {
+    public OrderController(OrderService orderService, EmailService emailService) {
         this.orderService = orderService;
-        this.notificationService = notificationService;
+        this.emailService = emailService;
     }
 
     // Legacy endpoint - kept for backward compatibility
@@ -56,7 +56,7 @@ public class OrderController {
         try {
             Order order = orderService.initiateOrder(userId, request);
             // Send email notification for COD orders
-            notificationService.notifyOrderPlaced(order);
+            emailService.notifyOrderPlaced(order);
             return new ResponseEntity<>(order, HttpStatus.CREATED);
         } catch (RuntimeException e) {
             return new ResponseEntity<>(new ErrorResponse(e.getMessage()), HttpStatus.BAD_REQUEST);
@@ -84,7 +84,7 @@ public class OrderController {
         try {
             return orderService.updateOrderStatus(id, status)
                     .map(order -> {
-                        notificationService.notifyStatusUpdate(order);
+                        emailService.notifyStatusUpdate(order);
                         return ResponseEntity.ok(order);
                     })
                     .orElse(ResponseEntity.notFound().build());
