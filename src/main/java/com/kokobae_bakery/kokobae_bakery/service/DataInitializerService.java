@@ -26,6 +26,7 @@ public class DataInitializerService implements CommandLineRunner {
     private final MessageRepository messageRepository;
     private final SettingsRepository settingsRepository;
     private final TagRepository tagRepository;
+    private final TestimonialRepository testimonialRepository;
     private final ObjectMapper objectMapper;
     private final PasswordEncoder passwordEncoder;
 
@@ -35,6 +36,7 @@ public class DataInitializerService implements CommandLineRunner {
                                   MessageRepository messageRepository,
                                   SettingsRepository settingsRepository,
                                   TagRepository tagRepository,
+                                  TestimonialRepository testimonialRepository,
                                   ObjectMapper objectMapper,
                                   PasswordEncoder passwordEncoder) {
         this.productRepository = productRepository;
@@ -43,6 +45,7 @@ public class DataInitializerService implements CommandLineRunner {
         this.messageRepository = messageRepository;
         this.settingsRepository = settingsRepository;
         this.tagRepository = tagRepository;
+        this.testimonialRepository = testimonialRepository;
         this.objectMapper = objectMapper;
         this.passwordEncoder = passwordEncoder;
     }
@@ -57,6 +60,44 @@ public class DataInitializerService implements CommandLineRunner {
                 tagRepository.count() == 0) {
             loadInitialData();
         }
+
+        if (testimonialRepository.count() == 0) {
+            seedTestimonials();
+        }
+    }
+
+    private void seedTestimonials() {
+        Instant now = Instant.now();
+        List<Testimonial> testimonials = List.of(
+                testimonial("Aarushi Reddy", "Verified Buyer", 5,
+                        "The fudgiest brownies I've ever had! You can taste the love in every bite. Ordered twice in one week!",
+                        "OG Fudge", 1, now.minusSeconds(86400 * 30)),
+                testimonial("Karthik Menon", "Verified Buyer", 5,
+                        "Kokobae's Biscoff cheesecake is unreal. Perfectly creamy with that Lotus crunch. My family's new favourite.",
+                        "Biscoff", 2, now.minusSeconds(86400 * 21)),
+                testimonial("Sneha Kapoor", "Verified Buyer", 5,
+                        "Finally a bakery that does eggless right! The Ragi Chocolate loaf is guilt-free indulgence. Highly recommend.",
+                        "Ragi Chocolate", 3, now.minusSeconds(86400 * 12)),
+                testimonial("Rahul Verma", "Verified Buyer", 4,
+                        "The Banana Nutella Walnut loaf was soft, moist and packed with flavour. Delivered fresh and beautifully packed.",
+                        "Banana, Nutella & Walnut", 4, now.minusSeconds(86400 * 5))
+        );
+        testimonialRepository.saveAll(testimonials);
+    }
+
+    private Testimonial testimonial(String customerName, String customerRole, int rating,
+                                    String comment, String productMentioned, int displayOrder,
+                                    Instant createdAt) {
+        Testimonial testimonial = new Testimonial();
+        testimonial.setCustomerName(customerName);
+        testimonial.setCustomerRole(customerRole);
+        testimonial.setRating(rating);
+        testimonial.setComment(comment);
+        testimonial.setProductMentioned(productMentioned);
+        testimonial.setVisible(true);
+        testimonial.setDisplayOrder(displayOrder);
+        testimonial.setCreatedAt(createdAt);
+        return testimonial;
     }
 
     private void loadInitialData() throws IOException {
