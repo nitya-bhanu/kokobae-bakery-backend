@@ -29,4 +29,5 @@ public class Product {
     private Integer discount;
     private Boolean containsEgg;
     private Boolean isPriceVisible;
+    private String weight;
 }

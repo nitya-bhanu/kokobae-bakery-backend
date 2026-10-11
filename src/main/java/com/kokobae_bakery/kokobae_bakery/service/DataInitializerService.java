@@ -73,7 +73,8 @@ public class DataInitializerService implements CommandLineRunner {
                       "imgAltText": "Stack of three rich, fudgy chocolate brownies on a light background.",
                       "discount": 0,
                       "containsEgg": false,
-                      "isPriceVisible": true
+                      "isPriceVisible": true,
+                      "weight": "Box of 4"
                     },
                     {
                       "id": "2",
@@ -89,7 +90,8 @@ public class DataInitializerService implements CommandLineRunner {
                       "imgAltText": "Fudgy chocolate brownie topped with a generous layer of colorful rainbow sprinkles.",
                       "discount": 0,
                       "containsEgg": false,
-                      "isPriceVisible": true
+                      "isPriceVisible": true,
+                      "weight": "Box of 4"
                     },
                     {
                       "id": "3",
@@ -105,7 +107,8 @@ public class DataInitializerService implements CommandLineRunner {
                       "imgAltText": "Moist chocolate chip brownie with visible melted chocolate chips.",
                       "discount": 0,
                       "containsEgg": true,
-                      "isPriceVisible": true
+                      "isPriceVisible": true,
+                      "weight": "Box of 4"
                     },
                     {
                       "id": "4",
@@ -121,7 +124,8 @@ public class DataInitializerService implements CommandLineRunner {
                       "imgAltText": "Rich brownie loaded with crushed Oreo pieces and a light drizzle of icing.",
                       "discount": 0,
                       "containsEgg": false,
-                      "isPriceVisible": true
+                      "isPriceVisible": true,
+                      "weight": "Box of 4"
                     },
                     {
                       "id": "5",
@@ -137,7 +141,8 @@ public class DataInitializerService implements CommandLineRunner {
                       "imgAltText": "Chocolate brownie with crunchy walnut pieces baked into the top layer.",
                       "discount": 0,
                       "containsEgg": true,
-                      "isPriceVisible": true
+                      "isPriceVisible": true,
+                      "weight": "Box of 4"
                     },
                     {
                       "id": "6",
@@ -153,7 +158,8 @@ public class DataInitializerService implements CommandLineRunner {
                       "imgAltText": "Fudgy brownie with a generous swirl of hazelnut Nutella baked into the center.",
                       "discount": 0,
                       "containsEgg": false,
-                      "isPriceVisible": true
+                      "isPriceVisible": true,
+                      "weight": "500g"
                     },
                     {
                       "id": "7",
@@ -169,7 +175,8 @@ public class DataInitializerService implements CommandLineRunner {
                       "imgAltText": "Long slice of moist banana loaf cake with walnuts and Nutella swirl, light background.",
                       "discount": 0,
                       "containsEgg": false,
-                      "isPriceVisible": true
+                      "isPriceVisible": true,
+                      "weight": "500g"
                     },
                     {
                       "id": "8",
@@ -185,7 +192,8 @@ public class DataInitializerService implements CommandLineRunner {
                       "imgAltText": "Long slice of fragrant vanilla loaf cake topped with golden toasted almonds.",
                       "discount": 0,
                       "containsEgg": true,
-                      "isPriceVisible": true
+                      "isPriceVisible": true,
+                      "weight": "500g"
                     },
                     {
                       "id": "9",
@@ -201,7 +209,8 @@ public class DataInitializerService implements CommandLineRunner {
                       "imgAltText": "Long slice of rich, dark Ragi chocolate loaf cake.",
                       "discount": 0,
                       "containsEgg": false,
-                      "isPriceVisible": true
+                      "isPriceVisible": true,
+                      "weight": "500g"
                     },
                     {
                       "id": "10",
@@ -217,7 +226,8 @@ public class DataInitializerService implements CommandLineRunner {
                       "imgAltText": "Long slice of Vanilla and Almond loaf made with whole wheat (atta) and jaggery.",
                       "discount": 0,
                       "containsEgg": false,
-                      "isPriceVisible": true
+                      "isPriceVisible": true,
+                      "weight": "500g"
                     },
                     {
                       "id": "11",
@@ -233,7 +243,8 @@ public class DataInitializerService implements CommandLineRunner {
                       "imgAltText": "Long slice of coffee-flavored loaf cake topped with a crunchy walnut crumble.",
                       "discount": 0,
                       "containsEgg": false,
-                      "isPriceVisible": true
+                      "isPriceVisible": true,
+                      "weight": "500g"
                     },
                     {
                       "id": "12",
@@ -249,7 +260,8 @@ public class DataInitializerService implements CommandLineRunner {
                       "imgAltText": "Square slice of Oreo cheesecake with cookies and cream topping.",
                       "discount": 0,
                       "containsEgg": false,
-                      "isPriceVisible": true
+                      "isPriceVisible": true,
+                      "weight": "Box of 4"
                     },
                     {
                       "id": "13",
@@ -265,7 +277,8 @@ public class DataInitializerService implements CommandLineRunner {
                       "imgAltText": "Square slice of Biscoff cheesecake with a Biscoff cookie crumble.",
                       "discount": 0,
                       "containsEgg": false,
-                      "isPriceVisible": true
+                      "isPriceVisible": true,
+                      "weight": "Box of 4"
                     },
                     {
                       "id": "14",
@@ -297,7 +310,8 @@ public class DataInitializerService implements CommandLineRunner {
                       "imgAltText": "Long slice of Hazelnut Tres Leches cake soaked in milk, topped with whipped cream and hazelnuts.",
                       "discount": 0,
                       "containsEgg": false,
-                      "isPriceVisible": true
+                      "isPriceVisible": true,
+                      "weight": "1 slice"
                     }
                   ],
                   "categories": [

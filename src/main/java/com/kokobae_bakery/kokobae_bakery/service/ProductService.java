@@ -45,6 +45,7 @@ public class ProductService {
         product.setDiscount(productDetails.getDiscount());
         product.setContainsEgg(productDetails.getContainsEgg());
         product.setIsPriceVisible(productDetails.getIsPriceVisible());
+        product.setWeight(productDetails.getWeight());
         return productRepository.save(product);
     }
 
