@@ -30,4 +30,5 @@ public class Product {
     private Boolean containsEgg;
     private Boolean isPriceVisible;
     private String weight;
+    private List<String> tags = new ArrayList<>();
 }

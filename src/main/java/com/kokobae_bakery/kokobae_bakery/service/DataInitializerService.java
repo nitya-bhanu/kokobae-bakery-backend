@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -24,6 +25,7 @@ public class DataInitializerService implements CommandLineRunner {
     private final UserRepository userRepository;
     private final MessageRepository messageRepository;
     private final SettingsRepository settingsRepository;
+    private final TagRepository tagRepository;
     private final ObjectMapper objectMapper;
     private final PasswordEncoder passwordEncoder;
 
@@ -32,6 +34,7 @@ public class DataInitializerService implements CommandLineRunner {
                                   UserRepository userRepository,
                                   MessageRepository messageRepository,
                                   SettingsRepository settingsRepository,
+                                  TagRepository tagRepository,
                                   ObjectMapper objectMapper,
                                   PasswordEncoder passwordEncoder) {
         this.productRepository = productRepository;
@@ -39,6 +42,7 @@ public class DataInitializerService implements CommandLineRunner {
         this.userRepository = userRepository;
         this.messageRepository = messageRepository;
         this.settingsRepository = settingsRepository;
+        this.tagRepository = tagRepository;
         this.objectMapper = objectMapper;
         this.passwordEncoder = passwordEncoder;
     }
@@ -49,7 +53,8 @@ public class DataInitializerService implements CommandLineRunner {
                 categoryRepository.count() == 0 &&
                 userRepository.count() == 0 &&
                 messageRepository.count() == 0 &&
-                settingsRepository.count() == 0) {
+                settingsRepository.count() == 0 &&
+                tagRepository.count() == 0) {
             loadInitialData();
         }
     }
@@ -332,6 +337,44 @@ public class DataInitializerService implements CommandLineRunner {
                       "name": "Tres Leches"
                     }
                   ],
+                  "tags": [
+                    {
+                      "id": "1",
+                      "name": "100% Eggless",
+                      "colorHex": "#388E3C",
+                      "textColorHex": "#ffffff"
+                    },
+                    {
+                      "id": "2",
+                      "name": "Vegan",
+                      "colorHex": "#3B6978",
+                      "textColorHex": "#ffffff"
+                    },
+                    {
+                      "id": "3",
+                      "name": "Best Seller",
+                      "colorHex": "#3B6978",
+                      "textColorHex": "#ffffff"
+                    },
+                    {
+                      "id": "4",
+                      "name": "Chef Special",
+                      "colorHex": "#5A1217",
+                      "textColorHex": "#ffffff"
+                    },
+                    {
+                      "id": "5",
+                      "name": "Contains Egg",
+                      "colorHex": "#E2B93B",
+                      "textColorHex": "#380a0e"
+                    },
+                    {
+                      "id": "6",
+                      "name": "Gluten-Free",
+                      "colorHex": "#8B6D6B",
+                      "textColorHex": "#ffffff"
+                    }
+                  ],
                   "users": [
                     {
                       "id": "1",
@@ -374,12 +417,33 @@ public class DataInitializerService implements CommandLineRunner {
         // Products
         CollectionType productListType = objectMapper.getTypeFactory().constructCollectionType(List.class, Product.class);
         List<Product> products = objectMapper.convertValue(data.get("products"), productListType);
+        // Backfill tags from legacy boolean flags so existing seed data renders badges
+        for (Product product : products) {
+            List<String> productTags = new ArrayList<>();
+            if (Boolean.TRUE.equals(product.getBestSeller())) {
+                productTags.add("Best Seller");
+            }
+            if (Boolean.TRUE.equals(product.getDealSeller())) {
+                productTags.add("Chef Special");
+            }
+            if (Boolean.FALSE.equals(product.getContainsEgg())) {
+                productTags.add("100% Eggless");
+            } else if (Boolean.TRUE.equals(product.getContainsEgg())) {
+                productTags.add("Contains Egg");
+            }
+            product.setTags(productTags);
+        }
         productRepository.saveAll(products);
 
         // Categories
         CollectionType categoryListType = objectMapper.getTypeFactory().constructCollectionType(List.class, Category.class);
         List<Category> categories = objectMapper.convertValue(data.get("categories"), categoryListType);
         categoryRepository.saveAll(categories);
+
+        // Tags
+        CollectionType tagListType = objectMapper.getTypeFactory().constructCollectionType(List.class, Tag.class);
+        List<Tag> tags = objectMapper.convertValue(data.get("tags"), tagListType);
+        tagRepository.saveAll(tags);
 
         // Users
         CollectionType userListType = objectMapper.getTypeFactory().constructCollectionType(List.class, User.class);
